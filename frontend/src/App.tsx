@@ -5,41 +5,62 @@ const HousePricePrediction = () => {
   // State for form inputs
   const [formData, setFormData] = useState({
     overallQual: 5,
-    grLivArea: 1500,
-    garageCars: 2,
-    totalBsmtSF: 1000,
+    grLivArea: '',
+    garageCars: '',
+    totalBsmtSF: '',
   });
 
   const [loading, setLoading] = useState(false);
+  const [predictedPrice, setPredictedPrice] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
+
+    if (name === 'overallQual') {
     setFormData(prev => ({
       ...prev,
-      [name]: Number(value) || 0,
+      [name]: Number(value),
     }));
+  } else {
+    setFormData(prev => ({
+      ...prev,
+      [name]: value === '' ? '' : value, //allow empty string 
+    })); 
+  }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError(null);
 
-    // Simulate API call / model prediction
-    setTimeout(() => {
-      console.log('Prediction request with:', formData);
-      
-      // Here you would normally call your ML model / API
-      // Example:
-      // const prediction = await predictPrice(formData);
-      // setPredictedPrice(prediction);
+    try {
+      const response = await fetch('http://localhost:5000/predict', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
 
+      const data = await response.json();
+
+      if (data.success) {
+        setPredictedPrice(data.prediction);
+      } else {
+        setError(data.error || 'Prediction failed');
+      }
+    } catch (err) {
+      setError('Failed to connect to the server. Make sure Flask is running. (app.py)');
+      console.error('Error:', err);
+    } finally {
       setLoading(false);
-      alert('Prediction completed! Check console for input values.');
-    }, 1500);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-linear-to-br from-gray-900 to-gray-800 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Title */}
         <h1 className="text-4xl md:text-5xl font-bold text-center text-white mb-10 tracking-tight">
@@ -47,7 +68,7 @@ const HousePricePrediction = () => {
         </h1>
 
         {/* Card */}
-        <div className="bg-gradient-to-b from-emerald-800 to-emerald-950 rounded-2xl shadow-2xl shadow-emerald-950/40 overflow-hidden border border-emerald-700/40">
+        <div className="bg-linear-to-b from-emerald-800 to-emerald-950 rounded-2xl shadow-2xl shadow-emerald-950/40 overflow-hidden border border-emerald-700/40">
           <div className="p-8 md:p-10">
             <form onSubmit={handleSubmit} className="space-y-8">
               {/* Overall Quality */}
@@ -121,6 +142,23 @@ const HousePricePrediction = () => {
                 />
               </div>
 
+              {/* Prediction Result */}
+              {predictedPrice !== null && (
+                <div className="bg-emerald-900/50 border border-emerald-600 rounded-xl p-6 text-center">
+                  <p className="text-emerald-200 text-sm mb-2">Predicted Price</p>
+                  <p className="text-3xl font-bold text-emerald-300">
+                    ${predictedPrice.toLocaleString()}
+                  </p>
+                </div>
+              )}
+
+              {/* Error Message */}
+              {error && (
+                <div className="bg-red-900/50 border border-red-600 rounded-xl p-4 text-center">
+                  <p className="text-red-200 text-sm">{error}</p>
+                </div>
+              )}
+
               {/* Submit Button */}
               <div className="pt-6">
                 <button
@@ -158,11 +196,6 @@ const HousePricePrediction = () => {
             </form>
           </div>
         </div>
-
-        {/* Optional footer note */}
-        <p className="text-center text-emerald-300/70 text-sm mt-8">
-          Model predictions are estimates only
-        </p>
       </div>
     </div>
   );
