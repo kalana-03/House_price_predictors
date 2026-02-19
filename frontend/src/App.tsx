@@ -10,44 +10,51 @@ const HousePricePrediction = () => {
     totalBsmtSF: '',
   });
 
+  // Tracks the API request is in progress
   const [loading, setLoading] = useState(false);
+  //Stores the prediction values returened from the Flask
   const [predictedPrice, setPredictedPrice] = useState<number | null>(null);
+  //Stores error msg
   const [error, setError] = useState<string | null>(null);
-
+  //handles user inputs
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
 
+    //Overall quality (slider)
     if (name === 'overallQual') {
     setFormData(prev => ({
       ...prev,
       [name]: Number(value),
     }));
   } else {
+    //take numbers and text as strings
     setFormData(prev => ({
       ...prev,
-      [name]: value === '' ? '' : value, //allow empty string 
+      [name]: value === '' ? '' : value, //For user to empty the field
     })); 
   }
   };
 
+  //API 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+    e.preventDefault(); //prevent page refreshing on sumbit button
     setLoading(true);
-    setError(null);
+    setError(null); // reset previous errors
 
     try {
+      //Sends a POST request to the local server
       const response = await fetch('http://localhost:5000/predict', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(formData), //convert to JSON
       });
 
       const data = await response.json();
 
       if (data.success) {
-        setPredictedPrice(data.prediction);
+        setPredictedPrice(data.prediction); //update the UI
       } else {
         setError(data.error || 'Prediction failed');
       }
@@ -99,7 +106,7 @@ const HousePricePrediction = () => {
                   type="number"
                   name="grLivArea"
                   min="300"
-                  max="8000"
+                  max="5650"
                   value={formData.grLivArea}
                   onChange={handleChange}
                   className="w-full px-4 py-3 bg-emerald-950 border border-emerald-700 rounded-lg text-white placeholder-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
@@ -134,7 +141,7 @@ const HousePricePrediction = () => {
                   type="number"
                   name="totalBsmtSF"
                   min="0"
-                  max="6000"
+                  max="6200"
                   value={formData.totalBsmtSF}
                   onChange={handleChange}
                   className="w-full px-4 py-3 bg-emerald-950 border border-emerald-700 rounded-lg text-white placeholder-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
